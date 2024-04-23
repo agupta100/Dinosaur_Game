@@ -68,16 +68,14 @@ class Game:
         self.level = 0
 
         # Create the hand detector
-        base_options = BaseOptions(model_asset_path='data/hand_landmarker.task')
-        options = HandLandmarkerOptions(base_options=base_options,
-                                                num_hands=2)
-        self.detector = HandLandmarker.create_from_options(options)
+        self.detector = mp.solutions.hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
         # Load video
         self.video = cv2.VideoCapture(0)
 
         # Initialize the maze
-        self.maze = Maze()  # You need to create a Maze class to handle drawing the maze
+        self.maze = Maze()
+
 
     def draw_maze(self, image):
         """
@@ -180,12 +178,12 @@ class Maze:
     def __init__(self):
         # Define the maze walls
         self.walls = [
-            ((50, 50), (550, 50)),  # Top wall
-            ((50, 50), (50, 350)),  # Left wall
-            ((550, 50), (550, 350)),  # Right wall
-            ((50, 350), (550, 350)),  # Bottom wall
-            ((250, 50), (250, 350)),  # Middle vertical wall
-            ((450, 50), (450, 350)),  # Another middle vertical wall
+            ((50, 50), (550, 50)),  
+            ((50, 50), (50, 350)),  
+            ((550, 50), (550, 350)), 
+            ((50, 350), (550, 350)),  
+            ((250, 50), (250, 350)),  
+            ((450, 50), (450, 350)), 
         ]
 
 
