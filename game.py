@@ -186,7 +186,20 @@ class Maze:
             ((450, 50), (450, 350)), 
         ]
 
+class Dinosaur:
+    def __init__(self, color, screen_width=600, screen_height=400):
+        self.color = color
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.x = screen_width // 2  
+        self.y = screen_height // 2  
+        self.size = 50  
+        
+    def draw(self, image):
+        cv2.rectangle(image, (self.x - self.size // 2, self.y - self.size // 2), (self.x + self.size // 2, self.y + self.size // 2), self.color, -1)
+ 
 
+        
 if __name__ == "__main__":        
     g = Game()
     g.run()
