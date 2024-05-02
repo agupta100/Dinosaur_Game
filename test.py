@@ -66,6 +66,15 @@ class Game:
         # Load video
         self.video = cv2.VideoCapture(0)
 
+        hand_landmarks_list = detection_result.hand_landmarks
+
+         # Loop through the detected hands to visualize.
+        for idx in range(len(hand_landmarks_list)):
+            hand_landmarks = hand_landmarks_list[idx]
+
+            # Get the coordinates of just the index finger (the tip of the index finger)
+            finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
+
 
     def draw_landmarks_on_hand(self, image, detection_result):
         """
@@ -95,7 +104,7 @@ class Game:
                                        solutions.drawing_styles.get_default_hand_connections_style())
             
 
-    def run(self, finger.x, finger.y, image):
+    def run(self):
         """
         Main game loop. Runs until the 
         user presses "q".
@@ -133,7 +142,6 @@ class Game:
 
             # Get the coordinates of just the index finger (the tip of the index finger)
             finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
-
 
             pixelCoordinates = DrawingUtil._normalized_to_pixel_coordinates(finger.x,
                                                                             finger.y,

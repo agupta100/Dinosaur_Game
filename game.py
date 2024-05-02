@@ -95,12 +95,6 @@ class Game:
         # Initalize the time 
         self.start_time = time.time()
         self.test_time = time.time()
-        # Ask which version
-        self.version_type = input("Which version are you playing in (0 for regular, 1 for timed, 2 for infinite spawning): ")
-        if self.version_type == "1":
-            self.level = 1
-        elif self.version_type == "2":
-            self.level = 2
         
 
 
