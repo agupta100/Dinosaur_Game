@@ -68,7 +68,10 @@ class Game:
         self.level = 0
 
         # Create the hand detector
-        self.detector = mp.solutions.hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        base_options = BaseOptions(model_asset_path='data/hand_landmarker.task')
+        options = HandLandmarkerOptions(base_options=base_options,
+                                                num_hands=2)
+        self.detector = HandLandmarker.create_from_options(options)
 
         # Load video
         self.video = cv2.VideoCapture(0)
@@ -153,7 +156,6 @@ class Game:
 
             # Draw the hand landmarks
             # self.draw_landmarks_on_hand(image, results)
-            self.check_enemy_kill(image, results)
 
             # Change the color of the frame back
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
