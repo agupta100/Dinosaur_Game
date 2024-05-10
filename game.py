@@ -19,6 +19,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
+
 # Library Constants
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
@@ -27,42 +28,12 @@ HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 DrawingUtil = mp.solutions.drawing_utils
 
-class Enemy:
-    """
-    A class to represent a random circle
-    enemy. It spawns randomly within 
-    the given bounds.
-    """
-    def __init__(self, color, screen_width=600, screen_height=400):
-        self.color = color
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.respawn()
-    
-    def respawn(self):
-        """
-        Selects a random location on the screen to respawn
-        """
-        self.x = random.randint(50, self.screen_width)
-        self.y = random.randint(50, self.screen_height)
-    
-    def draw(self, image):
-        """
-        Enemy is drawn as a circle onto the image
-
-        Args:
-            image (Image): The image to draw the enemy onto
-        """
-        cv2.circle(image, (self.x, self.y), 25, self.color, 5)
       
 class Game:
     def __init__(self):
         # Load game elements
         self.score = 0
-
-        # Initialize the enemies
-        self.green_enemy = Enemy(GREEN)
-        self.red_enemy = Enemy(RED)
+        self.somethingelse = "OK"
 
         # Version of the game
         self.level = 0
@@ -72,24 +43,75 @@ class Game:
         options = HandLandmarkerOptions(base_options=base_options,
                                                 num_hands=2)
         self.detector = HandLandmarker.create_from_options(options)
+        self.dinoimage = cv2.imread("dinosaur.png", -1)
+        self.dinoimageHeight, self.dinoimageWidth = self.dinoimage.shape[:2]
+        self.listofcacti = []
+        colorlist = [RED, GREEN, BLUE]
+        for i in range(20):
+            rando = random.randint(0,2)
+            color = colorlist[rando]
+            cacti = Cacti(color, 300, 200)
+            self.listofcacti.append(cacti)
+
+
+
+
+
 
         # Load video
         self.video = cv2.VideoCapture(0)
 
-        # Initialize the maze
-        self.maze = Maze()
-
-
-    def draw_maze(self, image):
+        
+            
+    
+    
+    def draw_landmarks_on_hand(self, image, detection_result):
         """
-        Draws the maze onto the image.
+        Draws all the landmarks on the hand
         Args:
-            image (Image): The image to draw on
+            image (Image): Image to draw on
+            detection_result (HandLandmarkerResult): HandLandmarker detection results
         """
-        # Draw the maze walls on the image
-        for wall in self.maze.walls:
-            cv2.line(image, wall[0], wall[1], BLUE, 2)
+        # Get a list of the landmarks
+        hand_landmarks_list = detection_result.hand_landmarks
+        
+        # Loop through the detected hands to visualize.
+        for idx in range(len(hand_landmarks_list)):
+            hand_landmarks = hand_landmarks_list[idx]
 
+            # Save the landmarks into a NormalizedLandmarkList
+            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+            hand_landmarks_proto.landmark.extend([
+            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
+            ])
+
+            # Draw the landmarks on the hand
+            DrawingUtil.draw_landmarks(image,
+                                       hand_landmarks_proto,
+                                       solutions.hands.HAND_CONNECTIONS,
+                                       solutions.drawing_styles.get_default_hand_landmarks_style(),
+                                       solutions.drawing_styles.get_default_hand_connections_style())
+            finger = hand_landmarks[HandLandmarkPoints.INDEX_FINGER_TIP.value]
+            pixelCoord = DrawingUtil._normalized_to_pixel_coordinates(finger.x,
+                                                                      finger.y,
+                                                                      self.imageWidth,
+                                                                      self.imageHeight)
+            if pixelCoord:
+                print("Dino: " , self.dinoimageHeight , ", " , self.dinoimageWidth)
+                print("Image: " , (pixelCoord[0]-self.dinoimageHeight//2 - pixelCoord[0]-self.dinoimageHeight//2) , ", " , (pixelCoord[1]-self.dinoimageWidth//2 - pixelCoord[1]-self.dinoimageWidth//2))
+                cv2.circle(image,
+                           (pixelCoord[0],pixelCoord[1]),
+                           25,
+                           RED,
+                           5)
+                return [pixelCoord[0], pixelCoord[1]]
+        return None
+        
+    def check_enemy_intercept(self, finger_x, finger_y, enemy):
+        if (enemy.getx() <= finger_x + 50 and enemy.getx() >= finger_x - 50) and (enemy.gety() <= finger_y + 50 and enemy.gety() >= finger_y - 50):
+            return "GAME OVER!"
+            
+        
     def run(self):
         """
         Main game loop. Runs until the 
@@ -98,7 +120,8 @@ class Game:
         # Initalize the time 
         self.start_time = time.time()
         self.test_time = time.time()
-        
+
+    
 
 
         # Run until we close the video  
@@ -116,17 +139,25 @@ class Game:
 
             # The image comes mirrored - flip it 
             image = cv2.flip(image, 1)
+            self.imageHeight, self.imageWidth = image.shape[:2]
+
 
             # Convert the image to a readable format and find the hands
             to_detect = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
             results = self.detector.detect(to_detect)
+            if (self.draw_landmarks_on_hand(image, results) != None):
+                somethinghere = self.draw_landmarks_on_hand(image, results)
+                for i in self.listofcacti:
+                    self.somethingelse = self.check_enemy_intercept(somethinghere[0], somethinghere[1], i)
+                    i.random_pattern()
+                    i.drawCircle(image)
+            else:
+                self.draw_landmarks_on_hand(image, results)
+            if self.somethingelse == "GAME OVER!":
+                break
 
-            # Draw the maze on the image 
-            self.draw_maze(image)
-            
-            # Draw the enemy on the image 
-            self.green_enemy.draw(image)
-            self.red_enemy.draw(image)
+
+    
             
             # Draw the score on the image 
             cv2.putText(image, 
@@ -170,27 +201,67 @@ class Game:
         self.video.release()
         cv2.destroyAllWindows()
 
-class Maze:
-    def __init__(self):
-        # Define the maze walls
-        self.walls = [
-            ((50, 50), (550, 50)),  
-            ((50, 50), (50, 350)),  
-            ((550, 50), (550, 350)), 
-            ((50, 350), (550, 350)),  
-            ((250, 50), (250, 350)),  
-            ((450, 50), (450, 350)), 
-        ]
+        
 
-class Dinosaur:
-    def __init__(self, color, screen_width=600, screen_height=400):
-        self.color = color
+class Cacti:
+    def __init__(self, color, x, y, screen_width=800, screen_height=600):
+        self.x = x
+        self.y = y 
+        
+        self.speed = 9
+        self.move_to_x = x
+        self.move_to_y = y
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.x = screen_width // 2  
-        self.y = screen_height // 2  
-        self.size = 50  
+        self.color = color
         
+
+
+    def getCoords(self):
+        return (self.x, self.y)
+    
+    def getx(self):
+        return self.x
+    def gety(self):
+        return self.y
+    
+    def updatePosition(self):
+        self.x += random.randint(0, 10)
+        self.y += random.randint(0, 10)
+        if self.x >= self.screen_width - 5:
+            self.x = self.screen_width - 5
+        if self.x <= 5:
+            self.x = 5
+        if self.y >= 5:
+            self.y = 5
+        if self.y <= self.screen_width - 5:
+            self.y = self.screen_width - 5
+        
+
+    
+    def random_pattern(self):
+        if (self.x+10 > self.move_to_x and self.x-10 < self.move_to_x) and (self.y+10 > self.move_to_y and self.y-10 < self.move_to_y):
+            self.move_to_x = random.randint(0, self.screen_width - 50)
+            self.move_to_y = random.randint(0, self.screen_height - 50)
+        
+        if not (self.x+self.speed > self.move_to_x and self.x-self.speed < self.move_to_x): 
+            if self.move_to_x > self.x:
+                self.x += self.speed
+            elif self.move_to_x < self.x:
+                self.x -= self.speed
+        if not (self.y+self.speed > self.move_to_y and self.y-self.speed < self.move_to_y): 
+            if self.move_to_y > self.y:
+                self.y += self.speed
+            elif self.move_to_y < self.y:
+                self.y -= self.speed
+    
+    def drawCircle(self, image):
+        cv2.circle(image,
+                           (self.x,self.y),
+                           25,
+                           self.color,
+                           5)
+    
     def draw(self, image):
         cv2.rectangle(image, (self.x - self.size // 2, self.y - self.size // 2), (self.x + self.size // 2, self.y + self.size // 2), self.color, -1)
  
